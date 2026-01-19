@@ -1,0 +1,107 @@
+{
+  "reactor_core_temp": {
+    "originalKey": "reactor_core_temp",
+    "label": "Reactor_core_temp",
+    "unit": "",
+    "description": "Auto-detected field",
+    "category": "other"
+  },
+  "latitude": {
+    "originalKey": "latitude",
+    "label": "Latitude",
+    "unit": "",
+    "description": "Auto-detected field",
+    "category": "other"
+  },
+  "longitude": {
+    "originalKey": "longitude",
+    "label": "longitude",
+    "unit": "",
+    "description": "analyzing...",
+    "category": "other"
+  },
+  "altitude_m": {
+    "originalKey": "altitude_m",
+    "label": "altitude_m",
+    "unit": "",
+    "description": "analyzing...",
+    "category": "other"
+  },
+  "ambient_temp": {
+    "originalKey": "ambient_temp",
+    "label": "ambient_temp",
+    "unit": "",
+    "description": "analyzing...",
+    "category": "other"
+  },
+  "humidity": {
+    "originalKey": "altitude_m",
+    "label": "Altitude_m",
+    "unit": "",
+    "description": "Auto-detected field",
+    "category": "other"
+  },
+  "engine_rpm": {
+    "originalKey": "ambient_temp",
+    "label": "Ambient_temp",
+    "unit": "",
+    "description": "Auto-detected field",
+    "category": "other"
+  },
+  "fuel_pressure_psi": {
+    "originalKey": "humidity",
+    "label": "Humidity",
+    "unit": "",
+    "description": "Auto-detected field",
+    "category": "other"
+  },
+  "exhaust_temp_f": {
+    "originalKey": "exhaust_temp_f",
+    "label": "Exhaust_temp_f",
+    "unit": "",
+    "description": "Auto-detected field",
+    "category": "other"
+  },
+  "battery_voltage": {
+    "originalKey": "battery_voltage",
+    "label": "Battery_voltage",
+    "unit": "",
+    "description": "Auto-detected field",
+    "category": "other"
+  },
+  "current_draw_amps": {
+    "originalKey": "current_draw_amps",
+    "label": "Current_draw_amps",
+    "unit": "",
+    "description": "Auto-detected field",
+    "category": "other"
+  },
+  "timestamp": {
+    "originalKey": "timestamp",
+    "label": "Timestamp",
+    "unit": "",
+    "description": "Auto-detected field",
+    "category": "other"
+  },
+  "temperature": {
+    "originalKey": "temperature",
+    "label": "temperature",
+    "unit": "",
+    "description": "analyzing...",
+    "category": "other"
+  },
+  "voltage": {
+    "originalKey": "voltage",
+    "label": "voltage",
+    "unit": "",
+    "description": "analyzing...",
+    "category": "other"
+  },
+  "count": {
+    "originalKey": "count",
+    "label": "Count",
+    "unit": "",
+    "description": "Auto-detected field",
+    "category": "other"
+  }
+}
