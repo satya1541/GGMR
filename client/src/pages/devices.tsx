@@ -1,5 +1,5 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { MessageSquare, Plus, Wifi, Activity, Terminal, Settings, Trash2 } from "lucide-react";
+import { MessageSquare, Plus, Wifi, Terminal, Settings, Trash2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -244,7 +244,7 @@ export default function DevicesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Connection List */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-3 space-y-4">
           <div className="glass-card rounded-2xl p-6">
             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <Wifi className="w-5 h-5 text-primary" />
@@ -332,44 +332,6 @@ export default function DevicesPage() {
                 </>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Stats / Info */}
-        <div className="space-y-6">
-          <div className="glass-card rounded-2xl p-6">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-emerald-400" />
-              System Health
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Online Devices</span>
-                  <span className="text-emerald-400 font-bold">
-                    {devices.filter(d => d.status?.toLowerCase() === 'connected').length} / {devices.length}
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 shadow-[0_0_10px_#10b981] transition-all duration-500"
-                    style={{ width: `${(devices.filter(d => d.status?.toLowerCase() === 'connected').length / (devices.length || 1)) * 100}%` }}
-                  />
-                </div>
-              </div>
-              <div className="pt-2">
-                <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                  * Live status is updated automatically when devices ping the broker.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-card rounded-2xl p-6 bg-gradient-to-br from-primary/10 to-transparent border-primary/20">
-            <h4 className="text-sm font-bold text-white mb-2">MQTT Connection Tip</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Use wildcards like <code className="text-primary font-mono">+</code> for single levels or <code className="text-primary font-mono">#</code> for multiple levels to subscribe to broad device data streams.
-            </p>
           </div>
         </div>
       </div>

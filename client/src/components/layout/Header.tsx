@@ -21,6 +21,10 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { WidgetEditor } from "@/components/dashboard/WidgetEditor";
+import { useWidgetPreferences } from "@/hooks/useWidgetPreferences";
+import { getQueryFn } from "@/lib/queryClient";
+import type { InferredMetadata } from "@/types/shared";
 
 export function Header() {
     const [location] = useLocation();
@@ -31,10 +35,20 @@ export function Header() {
     const [isLocked, setIsLocked] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    // Widget Editor State
+    const [editorOpen, setEditorOpen] = useState(false);
+    const { preferences, savePreferences, resetPreferences } = useWidgetPreferences();
+
     const queryClient = useQueryClient();
 
     const { data: notifications = [] } = useQuery<any[]>({
         queryKey: ["/api/notifications"],
+    });
+
+    // Fetch active sensor types for the editor
+    const { data: activeTypes = [] } = useQuery<InferredMetadata[]>({
+        queryKey: ["/api/readings/types"],
+        queryFn: getQueryFn({ on401: "throw" })
     });
 
     useEffect(() => {
@@ -54,12 +68,19 @@ export function Header() {
     const navItems = [
         { label: "Dashboard", href: "/" },
         { label: "Devices & Sensors", href: "/devices" },
-        { label: "Logs", href: "/logs" },
-        { label: "Settings", href: "/settings" },
     ];
 
     return (
         <>
+            <WidgetEditor
+                open={editorOpen}
+                onOpenChange={setEditorOpen}
+                availableSensors={activeTypes}
+                preferences={preferences}
+                onSave={savePreferences}
+                onReset={resetPreferences}
+            />
+
             {/* Lock Screen Overlay */}
             {isLocked && (
                 <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-2xl flex flex-col items-center justify-center transition-all duration-500 animate-in fade-in">
@@ -88,13 +109,6 @@ export function Header() {
                     <div className="h-10 w-auto flex items-center justify-center flex-shrink-0">
                         <img src="/logo.png" alt="GMR X CLINO" className="h-full w-auto object-contain" />
                     </div>
-                    <h1 className="text-lg md:text-xl font-black flex items-center tracking-tight">
-                        <span className="text-[#003B71]">G</span>
-                        <span className="text-[#E31E24]">M</span>
-                        <span className="text-[#F58220]">R</span>
-                        <span className="text-white/40 mx-0.5">X</span>
-                        <span className="bg-gradient-to-r from-emerald-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">CLINO</span>
-                    </h1>
 
                     {/* User Division Badge - Desktop Only */}
                     {user?.division && (
@@ -107,7 +121,7 @@ export function Header() {
                 </div>
 
                 {/* 2. Top Navigation Links - Desktop Centered */}
-                <nav className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2 items-center gap-1">
+                <nav className="hidden lg:flex flex-1 justify-center items-center gap-1 mx-4">
                     {navItems.map((item) => {
                         const isActive = location === item.href;
                         return (
@@ -138,6 +152,18 @@ export function Header() {
 
                     {/* Action Icons Group - Desktop */}
                     <div className="hidden md:flex items-center gap-2 bg-[#2d2d2d] p-1 rounded-lg relative">
+                        {/* Edit Layout Button */}
+                        <button
+                            onClick={() => setEditorOpen(true)}
+                            className="p-2 text-gray-400 hover:text-white rounded hover:bg-white/5 transition-all flex items-center gap-2 px-3"
+                            title="Edit Dashboard Layout"
+                        >
+                            <Settings className="w-4 h-4" />
+                            <span className="text-xs font-bold">Edit Layout</span>
+                        </button>
+
+                        <div className="w-px h-4 bg-white/10 mx-1" /> {/* Divider */}
+
                         <button
                             onClick={handleRefresh}
                             className={cn("p-2 text-gray-400 hover:text-white rounded hover:bg-white/5 transition-all", isRefreshing && "text-primary")}

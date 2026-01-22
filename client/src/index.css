@@ -54,61 +54,102 @@
 }
 
 /* Base Theme - Dark Mode Default */
-:root {
-  /* FieldMonitor Theme: Matte Black & Green */
-  --background: 0 0% 7%;
-  --foreground: 0 0% 98%;
+@layer base {
+  :root {
+    /* Light Mode Default */
+    --background: 0 0% 98%;
+    --foreground: 240 10% 3.9%;
 
-  /* Matte Card Backgrounds */
-  --card: 0 0% 11%;
-  --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
 
-  --popover: 0 0% 11%;
-  --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
 
-  /* Vibrant Green Primary */
-  --primary: 142 71% 45%;
-  --primary-foreground: 0 0% 98%;
+    --primary: 142 76% 36%; /* Slightly darker green for contrast on white */
+    --primary-foreground: 355.7 100% 97.3%;
 
-  --secondary: 0 0% 16%;
-  --secondary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
 
-  --muted: 0 0% 16%;
-  --muted-foreground: 0 0% 65%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
 
-  --accent: 0 0% 16%;
-  --accent-foreground: 0 0% 98%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
 
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-  --border: 0 0% 20%;
-  --input: 0 0% 20%;
-  --ring: 142 71% 45%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142 76% 36%;
 
-  --radius: 0.3rem;
+    --radius: 0.5rem;
 
-  /* Chart Colors (aligned with Green/Matte theme) */
-  --chart-1: 142 71% 45%;
-  /* Green */
-  --chart-2: 0 0% 60%;
-  /* Gray */
-  --chart-3: 142 71% 35%;
-  /* Darker Green */
-  --chart-4: 0 0% 40%;
-  /* Darker Gray */
-  --chart-5: 142 71% 55%;
-  /* Lighter Green */
+    --chart-1: 142 76% 36%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
 
-  /* Sidebar Specifics (Header in this case) */
-  --sidebar: 0 0% 9%;
-  --sidebar-foreground: 0 0% 65%;
-  --sidebar-primary: 142 71% 45%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 0 0% 16%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-border: 0 0% 20%;
-  --sidebar-ring: 142 71% 45%;
+    --sidebar: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* FieldMonitor Theme: Matte Black & Green */
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+
+    /* Matte Card Backgrounds */
+    --card: 0 0% 11%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 11%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Vibrant Green Primary */
+    --primary: 142 71% 45%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 16%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 142 71% 45%;
+
+    --chart-1: 142 71% 45%; /* Green */
+    --chart-2: 0 0% 60%; /* Gray */
+    --chart-3: 142 71% 35%; /* Darker Green */
+    --chart-4: 0 0% 40%; /* Darker Gray */
+    --chart-5: 142 71% 55%; /* Lighter Green */
+
+    --sidebar: 0 0% 9%;
+    --sidebar-foreground: 0 0% 65%;
+    --sidebar-primary: 142 71% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 16%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 142 71% 45%;
+  }
 }
 
 @layer base {

@@ -6,11 +6,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import DevicesPage from "@/pages/devices";
-import LogsPage from "@/pages/logs";
-import SettingsPage from "@/pages/settings";
+
+
+
 import AuthPage from "@/pages/auth-page";
 
 function ProtectedRoute({ component: Component, path }: { component: React.ComponentType<any>, path: string }) {
@@ -38,8 +41,9 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/devices" component={DevicesPage} />
-      <ProtectedRoute path="/logs" component={LogsPage} />
-      <ProtectedRoute path="/settings" component={SettingsPage} />
+
+
+
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
@@ -49,12 +53,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster richColors position="top-right" />
-          <Router />
-        </TooltipProvider>
-      </AuthProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster richColors position="top-right" />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

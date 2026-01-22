@@ -21,6 +21,7 @@ export const users = mysqlTable("users", {
   publicTelemetry: boolean("public_telemetry").default(false),
   remoteDebugging: boolean("remote_debugging").default(true),
   deviceFingerprinting: boolean("device_fingerprinting").default(true),
+  floorPlanImage: text("floor_plan_image"), // URL or base64 of the floor plan
 });
 
 export const devices = mysqlTable("devices", {
@@ -36,6 +37,8 @@ export const devices = mysqlTable("devices", {
   status: varchar("status", { length: 50 }).notNull().default("offline"),
   description: text("description"),
   lastSeen: timestamp("last_seen").defaultNow(),
+  xPosition: float("x_position").default(0), // 0-100% relative X
+  yPosition: float("y_position").default(0), // 0-100% relative Y
 });
 
 export const readings = mysqlTable("readings", {
@@ -45,6 +48,15 @@ export const readings = mysqlTable("readings", {
   value: float("value").notNull(),
   unit: varchar("unit", { length: 20 }).notNull(),
   timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const widgetPreferences = mysqlTable("widget_preferences", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  sensorType: varchar("sensor_type", { length: 50 }).notNull(),
+  visible: boolean("visible").default(true),
+  order: int("order").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -81,3 +93,38 @@ export type Device = typeof devices.$inferSelect;
 
 export type InsertReading = z.infer<typeof insertReadingSchema>;
 export type Reading = typeof readings.$inferSelect;
+
+export const insertWidgetPreferenceSchema = createInsertSchema(widgetPreferences).pick({
+  userId: true,
+  sensorType: true,
+  visible: true,
+  order: true,
+});
+
+export type InsertWidgetPreference = z.infer<typeof insertWidgetPreferenceSchema>;
+export type WidgetPreference = typeof widgetPreferences.$inferSelect;
+
+export const alertRules = mysqlTable("alert_rules", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  sensorType: varchar("sensor_type", { length: 100 }).notNull(),
+  conditionOperator: varchar("condition_operator", { length: 10 }).notNull(), // '>', '<', '=', '>=', '<='
+  conditionValue: float("condition_value").notNull(),
+  severity: varchar("severity", { length: 20 }).default("warning"), // 'info', 'warning', 'critical'
+  enabled: boolean("enabled").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAlertRuleSchema = createInsertSchema(alertRules).pick({
+  userId: true,
+  name: true,
+  sensorType: true,
+  conditionOperator: true,
+  conditionValue: true,
+  severity: true,
+  enabled: true,
+});
+
+export type InsertAlertRule = z.infer<typeof insertAlertRuleSchema>;
+export type AlertRule = typeof alertRules.$inferSelect;

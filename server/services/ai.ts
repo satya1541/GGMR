@@ -32,7 +32,7 @@ export async function inferMetadata(key: string, sampleValue: any): Promise<Infe
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
         const prompt = `
         Act as an IoT Data Expert. I have a raw JSON data field from a sensor.
         Key: "${key}"
@@ -62,7 +62,6 @@ export async function inferMetadata(key: string, sampleValue: any): Promise<Infe
 
     } catch (err) {
         console.error("[AI] Inference failed:", err);
-        // Fallback
         return {
             originalKey: key,
             label: key.charAt(0).toUpperCase() + key.slice(1),
@@ -70,5 +69,63 @@ export async function inferMetadata(key: string, sampleValue: any): Promise<Infe
             description: "Auto-detected field",
             category: "other"
         };
+    }
+}
+
+export async function analyzeIncidents(readings: any[], devices: any[]): Promise<string> {
+    if (!genAI) return "AI Service Offline. Basic monitoring active.";
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const prompt = `
+        Act as a Fleet Lead Engineer. Analyze this telemetry data and identify any critical patterns or multi-sensor incidents.
+        Provide a concise, professional summary (max 3 sentences).
+        Devices: ${JSON.stringify(devices.map(d => ({ name: d.name, status: d.status })))}
+        Recent Significant Readings: ${JSON.stringify(readings.slice(0, 20))}
+        `;
+
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch (err) {
+        console.error("[AI] Incident analysis failed:", err);
+        return "Critical analysis unavailable. Check raw telemetry.";
+    }
+}
+
+export async function processNaturalLanguageQuery(query: string, fleetState: any): Promise<string> {
+    if (!genAI) return "AI Commander offline.";
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const prompt = `
+        Act as a Command Center Operator. A user asked: "${query}"
+        Based on this current fleet state: ${JSON.stringify(fleetState)}
+        Answer the question accurately and concisely. If you need to specify a device, use its name.
+        `;
+
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch (err) {
+        console.error("[AI] Command processing failed:", err);
+        return "Unable to process command at this time.";
+    }
+}
+
+export async function generateHealthReport(readings: any[]): Promise<string> {
+    if (!genAI) return "Health reporting unavailable.";
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const prompt = `
+        Act as a Systems Analyst. Summarize the overall health of the IoT fleet based on these readings:
+        ${JSON.stringify(readings.slice(0, 50))}
+        Highlight any stability trends or maintenance needs. Be professional.
+        `;
+
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch (err) {
+        console.error("[AI] Health report failed:", err);
+        return "Failed to generate health summary.";
     }
 }

@@ -1,28 +1,29 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { WorldMap } from "@/components/dashboard/WorldMap";
-import { DeviceStatusChart } from "@/components/dashboard/DeviceStatusChart"; // Keep original status chart as dedicated component
-import { AdvancedPieCharts } from "@/components/dashboard/charts/AdvancedPieCharts";
-import { AdvancedLineCharts } from "@/components/dashboard/charts/AdvancedLineCharts";
-import { AdvancedBarCharts } from "@/components/dashboard/charts/AdvancedBarCharts";
-import { SpecializedCharts } from "@/components/dashboard/charts/SpecializedCharts";
+import { SmartChart, ChartVariant } from "@/components/charts/SmartChart";
+import { useWidgetPreferences } from "@/hooks/useWidgetPreferences";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Device } from "@shared/schema";
-import { useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { toast } from "sonner";
+import { formatDecimalTime } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import type { InferredMetadata } from "@/types/shared";
 
 // Interface matching server/services/ai.ts
-interface InferredMetadata {
-  originalKey: string;
-  label: string;
-  unit: string;
-  description: string;
-  category: "sensor" | "status" | "technical" | "other";
-}
 
 export default function Dashboard() {
+  const { preferences } = useWidgetPreferences();
+
   const { data: devices = [] } = useQuery<Device[]>({
     queryKey: ["/api/devices"]
   });
@@ -42,6 +43,24 @@ export default function Dashboard() {
     queryFn: getQueryFn({ on401: "throw" })
   });
 
+  // Apply widget preferences to filter and sort sensors
+  const visibleTypes = activeTypes
+    .filter(meta => {
+      // Exclude lat/lon as they are displayed on the Field Map
+      const isGps = ['lat', 'lon', 'latitude', 'longitude'].includes(meta.originalKey.toLowerCase());
+      if (isGps) return false;
+
+      const pref = preferences.find(p => p.sensorType === meta.originalKey);
+      return pref ? pref.visible : true; // Default to visible if no preference
+    })
+    .sort((a, b) => {
+      const prefA = preferences.find(p => p.sensorType === a.originalKey);
+      const prefB = preferences.find(p => p.sensorType === b.originalKey);
+      const orderA = prefA?.order ?? 999;
+      const orderB = prefB?.order ?? 999;
+      return orderA - orderB;
+    });
+
   const queryClient = useQueryClient();
 
   // WebSocket logic...
@@ -57,7 +76,7 @@ export default function Dashboard() {
           const newReading = message.data.reading;
           queryClient.setQueryData<any[]>(["/api/readings/history"], (old) => {
             const current = old || [];
-            return [...current, newReading].slice(-2000);
+            return [...current, newReading].slice(-50);
           });
           // For metadata, we might need a refresh if it's a new type
           // We can just invalidate strictly
@@ -69,15 +88,7 @@ export default function Dashboard() {
     return () => socket.close();
   }, [queryClient]);
 
-  const onlineCount = devices.filter(d => d.status === 'connected' || d.status === 'Connected').length;
-  const offlineCount = devices.filter(d => d.status === 'offline' || d.status === 'Offline').length;
-  const errorCount = devices.filter(d => d.status === 'error' || d.status === 'Error').length;
-
-  const statusData = [
-    { name: 'Online', value: onlineCount, color: '#10b981' },
-    { name: 'Offline', value: offlineCount, color: '#ec4899' },
-    { name: 'Error', value: errorCount, color: '#f87171' },
-  ];
+  // Status logic removed
 
   const hasGps = readings.some((r: any) =>
     ['lat', 'lon', 'latitude', 'longitude'].some(k => r.type.toLowerCase().includes(k))
@@ -95,85 +106,8 @@ export default function Dashboard() {
     toast.success(`Exported ${filename}`);
   };
 
-  // Universal Smart Configuration
-  const getSmartConfig = (typeKey: string, data: any[]) => {
-    if (!data.length) return [];
-
-    const latest = data[data.length - 1];
-    const val = latest.value;
-
-    // 1. Analyze Data Type
-    const isNumber = !isNaN(parseFloat(val)) && isFinite(val);
-
-    // 2. Dynamic Min/Max Calculation from History
-    const values = data.map(d => Number(d.value)).filter(n => !isNaN(n));
-    const minVal = Math.min(...values);
-    const maxVal = Math.max(...values);
-    const range = maxVal - minVal;
-
-    // Buffer for gauge to avoid needle hitting edges
-    const gaugeMin = Math.floor(minVal - (range * 0.1));
-    const gaugeMax = Math.ceil(maxVal + (range * 0.1));
-
-    // 3. Deterministic Selection
-    if (isNumber) {
-      const k = typeKey.toLowerCase();
-
-      // CATEGORY A: High Speed / Rotation / Percentages -> GAUGE + SPLINE
-      if (k.includes('rpm') || k.includes('speed') || k.includes('percent')) {
-        return [
-          { title: 'Current Status', component: SpecializedCharts, props: { variant: 'gauge' as const, min: gaugeMin, max: gaugeMax } },
-          { title: 'Trend', component: AdvancedLineCharts, props: { variant: 'spline' as const } }
-        ];
-      }
-
-      // CATEGORY B: Flow / Traffic / Volume -> AREA + HEATMAP
-      if (k.includes('traffic') || k.includes('flow') || k.includes('amp') || k.includes('rate')) {
-        return [
-          { title: 'Volume Flow', component: AdvancedLineCharts, props: { variant: 'area' as const } },
-          { title: 'Density', component: SpecializedCharts, props: { variant: 'heatmap' as const } }
-        ];
-      }
-
-      // CATEGORY C: Pressure / Voltage / Discrete Levels -> BAR + LOLLIPOP
-      if (k.includes('press') || k.includes('volt') || k.includes('count') || k.includes('level')) {
-        return [
-          { title: 'Recent Levels', component: AdvancedBarCharts, props: { variant: 'bar' as const } },
-          { title: 'Distribution', component: AdvancedBarCharts, props: { variant: 'lollipop' as const } }
-        ];
-      }
-
-      // CATEGORY D: Temperature / Environmental -> CANDLESTICK (for volatility) + GAUGE
-      // We use Candlestick here specifically for Temperatures/Humidity to show min/max range stability
-      if (k.includes('temp') || k.includes('hum') || k.includes('env')) {
-        return [
-          {
-            title: 'Fluctuation Range (OHLC)',
-            component: SpecializedCharts,
-            props: { variant: 'candlestick' as const }
-          },
-          {
-            title: 'Current Status',
-            component: SpecializedCharts,
-            props: { variant: 'gauge' as const, min: gaugeMin, max: gaugeMax }
-          }
-        ];
-      }
-
-      // Default Fallback: Line + Gauge
-      return [
-        { title: 'Live Trend', component: AdvancedLineCharts, props: { variant: 'line' as const } },
-        { title: 'Monitor', component: SpecializedCharts, props: { variant: 'gauge' as const, min: gaugeMin, max: gaugeMax } }
-      ];
-
-    } else {
-      // Non-Number (String/Boolean/Categorical)
-      return [
-        { title: 'Category Distribution', component: AdvancedPieCharts, props: { variant: 'pie' as const } },
-        { title: 'Frequency', component: AdvancedPieCharts, props: { variant: 'donut' as const } }
-      ];
-    }
-  };
+  const [chartVariants, setChartVariants] = useState<Record<string, ChartVariant>>({});
+  const [isMapModalOpen, setMapModalOpen] = useState(false);
 
   if (devices.length === 0 && readings.length === 0) {
     return (
@@ -193,33 +127,18 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
-        {/* Fixed System Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {/* Field Map Location - Moved to Top */}
         {hasGps && (
-          <div className="col-span-1 h-[300px]">
-            <DashboardCard title="Field Map Location" className="h-full">
+          <div className="col-span-1 h-[200px] cursor-pointer" onClick={() => setMapModalOpen(true)}>
+            <DashboardCard title="Field Map Location" className="h-full" hideControls={true}>
               <WorldMap readings={readings} />
             </DashboardCard>
           </div>
         )}
 
-        <div className="col-span-1 h-[300px]">
-          <DashboardCard title="Device Status" className="h-full">
-            <DeviceStatusChart data={statusData} />
-          </DashboardCard>
-        </div>
-
-        <div className="col-span-1 h-[300px]">
-          <DashboardCard title="System Type Distribution" className="h-full">
-            <AdvancedPieCharts
-              data={activeTypes.map(meta => ({ name: meta.label, value: readings.filter((r: any) => r.type === meta.originalKey).length }))}
-              variant="semicircle"
-            />
-          </DashboardCard>
-        </div>
-
-        {/* Dynamic Cards By Sensor Type (AI Enriched) */}
-        {activeTypes.map((meta, i) => {
+        {/* Dynamic Cards By Sensor Type */}
+        {visibleTypes.map((meta, i) => {
           const typeKey = meta.originalKey;
 
           // Helper to get device name
@@ -231,41 +150,62 @@ export default function Dashboard() {
 
           if (!TypeData.length) return null;
 
-          const configs = getSmartConfig(typeKey, TypeData);
+          const cardTitle = `${meta.label} ${meta.unit ? `(${meta.unit}) ` : ''}`;
 
-          // Color based on original key for consistency, or category
-          const color = (typeKey.includes('temp') || typeKey.includes('err')) ? '#ef4444' :
-            (typeKey.includes('hum') || typeKey.includes('water')) ? '#3b82f6' :
+          // Color generation
+          const color = (typeKey.includes('temp') || typeKey.includes('err') || typeKey.includes('cr')) ? '#ef4444' :
+            (typeKey.includes('hum') || typeKey.includes('water') || typeKey.includes('level')) ? '#3b82f6' :
               (typeKey.includes('volt') || typeKey.includes('power')) ? '#eab308' : '#10b981';
 
-          return configs.map((config, idx) => {
-            const ChartComponent = config.component as any;
+          const activeVariant = chartVariants[typeKey] || 'auto';
 
-            // Render: "Temperature Trend" or "Temperature (C) Trend"
-            const cardTitle = `${meta.label} ${meta.unit ? `(${meta.unit}) ` : ''}${config.title}`;
+          const latestValue = TypeData.length > 0 ? TypeData[TypeData.length - 1].value : 0;
+          const isTechnical = meta.category === 'technical';
 
-            // Unique key for strict reconciliation
-            return (
-              <div key={`${typeKey}-${idx}`} className="col-span-1 h-[300px] animate-in fade-in zoom-in duration-500">
-                <DashboardCard
-                  title={cardTitle}
-                  className="h-full"
-                  onExport={() => handleExport(cardTitle, TypeData)}
-                >
-                  <ChartComponent
-                    data={TypeData}
-                    type={meta.label} // Use readable label for tooltip
-                    unit={meta.unit}  // Pass unit for tooltip
-                    color={color}
-                    {...config.props}
-                  />
-                  {/* Optional: Add AI Description tooltip/icon here in future */}
-                </DashboardCard>
-              </div>
-            )
-          });
+
+          return (
+            <div key={`${typeKey}-chart-${i}`} className="col-span-1 h-[200px] animate-in fade-in zoom-in duration-500">
+              <DashboardCard
+                title={cardTitle}
+                className="h-full"
+                activeVariant={activeVariant}
+                onVariantChange={(v) => setChartVariants(prev => ({ ...prev, [typeKey]: v }))}
+                hideControls={isTechnical}
+              >
+                {isTechnical ? (
+                  <div className="flex items-center justify-center h-full text-4xl font-bold text-foreground">
+                    {meta.unit === 'IST' ? formatDecimalTime(latestValue) : latestValue}
+                  </div>
+                ) : (
+                  <div className="w-full h-full p-2">
+                    <SmartChart
+                      data={TypeData}
+                      typeKey={typeKey}
+                      label={meta.label}
+                      unit={meta.unit}
+                      color={color}
+                      variant={activeVariant}
+                    />
+                  </div>
+                )}
+              </DashboardCard>
+            </div>
+          )
         })}
       </div>
+
+      {/* Widget Editor Dialog */}
+
+      <Dialog open={isMapModalOpen} onOpenChange={setMapModalOpen}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Live Map View</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            <WorldMap readings={readings} isLarge={true} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

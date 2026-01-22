@@ -7,9 +7,11 @@ import { metadataService } from "./metadata";
 export class MQTTService {
     private clients: Map<number, mqtt.MqttClient> = new Map();
     private wss: WebSocketServer | null = null;
+    private authenticatedClients: Map<WebSocket, { userId: string; role: string }>;
 
-    constructor(wss: WebSocketServer) {
+    constructor(wss: WebSocketServer, authenticatedClients: Map<WebSocket, { userId: string; role: string }>) {
         this.wss = wss;
+        this.authenticatedClients = authenticatedClients;
     }
 
     async syncDevices() {
@@ -47,8 +49,9 @@ export class MQTTService {
             const options: mqtt.IClientOptions = {
                 username: device.username || undefined,
                 password: device.password || undefined,
-                connectTimeout: 5000,
+                connectTimeout: 30000,
                 reconnectPeriod: 10000,
+                keepalive: 60,
             };
 
             // Map protocol selection to URL prefix
@@ -93,7 +96,7 @@ export class MQTTService {
                             raw: data,
                             timestamp: new Date()
                         }
-                    });
+                    }, device.ownerId);
 
                     // 2. Extract Readings & Enrich with AI
                     const items = Array.isArray(data) ? data : [data];
@@ -114,10 +117,11 @@ export class MQTTService {
                         // Case B: Hardware schema (Key-Value)
                         else {
                             for (const [key, val] of Object.entries(item)) {
-                                const numericVal = parseFloat(val as string);
-                                if (!isNaN(numericVal) && typeof val !== 'boolean') {
+                                let processedValue = this.parseTelemetryValue(val);
+
+                                if (processedValue !== null) {
                                     type = key.toLowerCase();
-                                    value = numericVal;
+                                    value = processedValue;
 
                                     // Logic duplicated from above to handle MULTIPLE keys per object
                                     // Ideally we refactor this, but for minimal diff we just inline the handling here
@@ -149,13 +153,16 @@ export class MQTTService {
                                         });
                                     }
 
-                                    const reading = await storage.addReading({
+                                    // BYPASS DB: Create in-memory reading object
+                                    const reading = {
+                                        id: Date.now(), // Temporary ID
                                         deviceId: device.id,
                                         type,
                                         value,
-                                        unit: ""
-                                    });
-                                    this.broadcast({ type: "update", deviceId: device.id, data: { status: "connected", reading } });
+                                        unit: "",
+                                        timestamp: new Date()
+                                    };
+                                    this.broadcast({ type: "update", deviceId: device.id, data: { status: "connected", reading } }, device.ownerId);
                                 }
                             }
                             // prevent outer logic from running again for "Case B" since we handled it inside
@@ -184,13 +191,16 @@ export class MQTTService {
                                 });
                             }
 
-                            const reading = await storage.addReading({
+                            // BYPASS DB: Create in-memory reading object
+                            const reading = {
+                                id: Date.now(), // Temporary ID
                                 deviceId: device.id,
                                 type,
                                 value,
-                                unit
-                            });
-                            this.broadcast({ type: "update", deviceId: device.id, data: { status: "connected", reading } });
+                                unit,
+                                timestamp: new Date()
+                            };
+                            this.broadcast({ type: "update", deviceId: device.id, data: { status: "connected", reading } }, device.ownerId);
                         }
                     }
                 } catch (err) {
@@ -213,11 +223,49 @@ export class MQTTService {
         }
     }
 
-    private broadcast(message: any) {
+    private parseTelemetryValue(val: any): number | null {
+        // Handle boolean values
+        if (typeof val === 'boolean') {
+            return val ? 1 : 0;
+        }
+
+        // Handle time strings (e.g. "HH:MM:SS" or "HH:MM") FIRST
+        if (typeof val === 'string' && val.includes(':')) {
+            const parts = val.split(':');
+            if (parts.length >= 2) {
+                const h = parseInt(parts[0]);
+                const m = parseInt(parts[1]);
+                const s = parts[2] ? parseInt(parts[2]) : 0;
+
+                if (!isNaN(h) && !isNaN(m)) {
+                    // Convert to decimal hours for charting (e.g. 13:30 -> 13.5)
+                    return h + m / 60 + s / 3600;
+                }
+            }
+        }
+
+        // Handle generic numeric values as a fallback
+        const numericVal = parseFloat(val as string);
+        if (!isNaN(numericVal)) {
+            return numericVal;
+        }
+
+        return null;
+    }
+
+    private broadcast(message: any, deviceOwnerId?: string) {
         if (!this.wss) return;
         const payload = JSON.stringify(message);
+
         this.wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
+            if (client.readyState !== WebSocket.OPEN) return;
+
+            // Get authenticated user info for this client
+            const userInfo = this.authenticatedClients.get(client);
+            if (!userInfo) return; // Skip unauthenticated clients
+
+            // Send if: admin OR no device owner specified OR user owns the device
+            if (userInfo.role === 'admin' || !deviceOwnerId || userInfo.userId === deviceOwnerId) {
                 client.send(payload);
             }
         });

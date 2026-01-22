@@ -63,7 +63,7 @@ export function KPICards({ totalDevices, onlineCount, totalReadings, customMetri
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider mb-1">{card.title}</p>
-              <h3 className="text-2xl font-bold text-white">{card.value}</h3>
+              <h3 className="text-2xl font-bold text-foreground">{card.value}</h3>
             </div>
             <div className={cn("p-2 rounded-xl", card.bg)}>
               <card.icon className={cn("w-5 h-5", card.color)} />

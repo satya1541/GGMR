@@ -8,6 +8,13 @@ export const poolConnection = mysql.createPool({
     user: "testing",
     password: "testing@2025",
     database: "DGMR",
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
+    waitForConnections: true,
+    connectionLimit: 10,
+    maxIdle: 10,
+    idleTimeout: 60000,
+    queueLimit: 0,
 });
 
 export const db = drizzle(poolConnection, { schema, mode: "default" });
